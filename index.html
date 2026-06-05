@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💌 心動模擬器</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--rose:#c9748a;--rose-dark:#8b4a5c;--cream:#fdf6f0;--text:#3a2a2e;--muted:#8a6a72;--card:rgba(255,255,255,0.88)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Serif TC',serif;background:var(--cream);color:var(--text);min-height:100vh;overflow-x:hidden}
+.petals{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;overflow:hidden}
+.petal{position:absolute;top:-20px;opacity:0;animation:fall linear infinite}
+@keyframes fall{0%{opacity:0;transform:translateY(0) rotate(0deg)}10%{opacity:.7}90%{opacity:.4}100%{opacity:0;transform:translateY(110vh) rotate(400deg)}}
+.screen{display:none;min-height:100vh;position:relative;z-index:1}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+
+/* SETUP */
+#setup{background:linear-gradient(155deg,#fdf0f3,#fdf6f0,#f0eef8);justify-content:center;padding:2rem 1rem}
+.setup-card{background:var(--card);backdrop-filter:blur(12px);border:1px solid rgba(201,116,138,.22);border-radius:26px;padding:2.5rem 2rem;max-width:460px;width:100%;box-shadow:0 10px 50px rgba(201,116,138,.13)}
+.s-title{font-family:'Playfair Display',serif;font-size:2rem;color:var(--rose-dark);text-align:center;margin-bottom:.2rem}
+.s-sub{text-align:center;color:var(--muted);font-size:.82rem;margin-bottom:2rem;letter-spacing:.06em}
+.fg{margin-bottom:1.15rem}
+.fg label{display:block;font-size:.76rem;color:var(--muted);margin-bottom:.35rem;letter-spacing:.09em}
+.fg input,.fg textarea{width:100%;padding:.62rem 1rem;border:1px solid rgba(201,116,138,.28);border-radius:10px;background:rgba(253,240,243,.45);font-family:'Noto Serif TC',serif;font-size:.9rem;color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s}
+.fg input:focus,.fg textarea:focus{border-color:var(--rose);box-shadow:0 0 0 3px rgba(201,116,138,.11)}
+.fg textarea{resize:vertical;min-height:68px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.start-btn{width:100%;padding:.9rem;background:linear-gradient(135deg,var(--rose),var(--rose-dark));color:#fff;border:none;border-radius:13px;font-family:'Noto Serif TC',serif;font-size:1rem;font-weight:600;cursor:pointer;letter-spacing:.12em;transition:transform .15s,box-shadow .2s;margin-top:.4rem}
+.start-btn:hover{transform:translateY(-2px);box-shadow:0 7px 24px rgba(201,116,138,.42)}
+.start-btn:active{transform:translateY(0)}
+
+/* GAME */
+#game{background:var(--cream);padding-bottom:3rem}
+.top-bar{width:100%;max-width:620px;display:flex;align-items:center;justify-content:space-between;padding:1.2rem 1rem .7rem}
+.s-info{font-size:.8rem;color:var(--muted)}
+.s-info span{font-weight:600;color:var(--rose)}
+.bpm-bar{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--rose);font-weight:600}
+.hico{font-size:1.1rem;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.32)}}
+
+.scene-box{max-width:620px;width:100%;padding:0 1rem;margin-bottom:1rem}
+.scene-ill{background:linear-gradient(135deg,#fce8ed,#f5e8f8);border-radius:22px;padding:1.4rem 1.6rem;text-align:center;position:relative;overflow:hidden;border:1px solid rgba(201,116,138,.18)}
+.scene-ill::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 20% 80%,rgba(201,116,138,.07),transparent 60%),radial-gradient(circle at 80% 20%,rgba(160,120,200,.07),transparent 60%)}
+.s-emoji{font-size:3.2rem;margin-bottom:.4rem;position:relative}
+.s-stitle{font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--rose-dark);position:relative}
+.s-sdesc{font-size:.8rem;color:var(--muted);margin-top:.25rem;position:relative;font-style:italic}
+
+.aff-area{max-width:620px;width:100%;padding:0 1rem;margin-bottom:.9rem}
+.aff-label{display:flex;justify-content:space-between;font-size:.73rem;color:var(--muted);margin-bottom:.35rem}
+.aff-label span:last-child{color:var(--rose);font-weight:600}
+.aff-track{background:rgba(201,116,138,.11);border-radius:999px;height:7px;overflow:hidden}
+.aff-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#f4a7bb,var(--rose),var(--rose-dark));transition:width .65s cubic-bezier(.34,1.56,.64,1)}
+
+.dlg-area{max-width:620px;width:100%;padding:0 1rem;margin-bottom:1rem}
+.dlg-box{background:var(--card);border:1px solid rgba(201,116,138,.18);border-radius:20px;padding:1.2rem 1.5rem;box-shadow:0 4px 22px rgba(201,116,138,.08);min-height:88px}
+.spk{font-size:.75rem;font-weight:600;color:var(--rose);letter-spacing:.1em;margin-bottom:.45rem}
+.dlg-txt{font-size:.93rem;line-height:1.9;color:var(--text);min-height:2.5rem;white-space:pre-wrap}
+.cur{display:inline-block;width:2px;height:1em;background:var(--rose);vertical-align:text-bottom;animation:blink .8s step-end infinite;margin-left:1px}
+@keyframes blink{50%{opacity:0}}
+
+.ch-area{max-width:620px;width:100%;padding:0 1rem;display:flex;flex-direction:column;gap:.6rem}
+.ch-btn{background:var(--card);border:1.5px solid rgba(201,116,138,.22);border-radius:15px;padding:.82rem 1.2rem;font-family:'Noto Serif TC',serif;font-size:.87rem;color:var(--text);cursor:pointer;text-align:left;transition:all .2s;box-shadow:0 2px 10px rgba(0,0,0,.03);position:relative;overflow:hidden}
+.ch-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(201,116,138,.07),transparent);opacity:0;transition:opacity .2s}
+.ch-btn:hover{border-color:var(--rose);transform:translateX(5px)}
+.ch-btn:hover::before{opacity:1}
+.ch-btn:active{transform:translateX(2px) scale(.99)}
+.ctag{font-size:.68rem;padding:2px 8px;border-radius:999px;margin-right:7px;font-weight:600}
+.t-sweet{background:rgba(201,116,138,.14);color:var(--rose)}
+.t-bold{background:rgba(139,74,92,.14);color:var(--rose-dark)}
+.t-gentle{background:rgba(201,169,110,.18);color:#7a5c2a}
+
+.nav-bar{max-width:620px;width:100%;padding:.5rem 1rem;display:flex;gap:.75rem;margin-top:.4rem}
+.n-btn{flex:1;padding:.72rem;border-radius:13px;font-family:'Noto Serif TC',serif;font-size:.84rem;cursor:pointer;transition:all .2s;border:1.5px solid rgba(201,116,138,.28);background:transparent;color:var(--muted)}
+.n-btn:hover{border-color:var(--rose);color:var(--rose)}
+.n-btn.pri{background:linear-gradient(135deg,var(--rose),var(--rose-dark));border-color:transparent;color:#fff;font-weight:600}
+.n-btn.pri:hover{box-shadow:0 5px 18px rgba(201,116,138,.42);transform:translateY(-1px)}
+
+/* ENDING */
+#ending{background:linear-gradient(155deg,#fce8ed,#fdf6f0,#f0eef8);justify-content:center;text-align:center;padding:2rem 1rem}
+.end-card{max-width:420px;background:var(--card);border-radius:28px;padding:2.5rem 2rem;border:1px solid rgba(201,116,138,.22);box-shadow:0 14px 55px rgba(201,116,138,.16)}
+.end-emo{font-size:4rem;margin-bottom:1rem}
+.end-title{font-family:'Playfair Display',serif;font-size:1.65rem;color:var(--rose-dark);margin-bottom:.8rem}
+.end-score{font-size:2rem;font-weight:600;color:var(--rose);margin-bottom:1.2rem}
+.end-txt{font-size:.88rem;color:var(--muted);line-height:2;margin-bottom:1.6rem;white-space:pre-wrap}
+.r-btn{padding:.82rem 2.2rem;background:linear-gradient(135deg,var(--rose),var(--rose-dark));color:#fff;border:none;border-radius:13px;font-family:'Noto Serif TC',serif;font-size:.95rem;font-weight:600;cursor:pointer;letter-spacing:.08em;transition:all .2s}
+.r-btn:hover{transform:translateY(-2px);box-shadow:0 7px 24px rgba(201,116,138,.42)}
+
+.hburst{position:fixed;pointer-events:none;z-index:999;font-size:1.5rem;animation:burst 1s ease-out forwards}
+@keyframes burst{0%{opacity:1;transform:scale(.5) translateY(0)}100%{opacity:0;transform:scale(1.6) translateY(-65px)}}
+
+@media(max-width:480px){.setup-card{padding:2rem 1.4rem}.row2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="petals" id="petalsC"></div>
+
+<!-- SETUP -->
+<div class="screen active" id="setup">
+  <div class="setup-card">
+    <h1 class="s-title">💌 心動模擬器</h1>
+    <p class="s-sub">為你打造專屬的浪漫故事</p>
+    <div class="row2">
+      <div class="fg"><label>你的名字</label><input id="pName" placeholder="例：小明" maxlength="10"></div>
+      <div class="fg"><label>對象的名字</label><input id="tName" placeholder="例：佳嫻" maxlength="10"></div>
+    </div>
+    <div class="fg"><label>對象的稱呼／關係</label><input id="tRole" placeholder="例：嫂子、學姊、鄰居姊姊…" maxlength="15"></div>
+    <div class="fg"><label>對象的個性</label><textarea id="tPersonality" placeholder="例：溫柔體貼、喜歡烘焙、說話輕輕的…"></textarea></div>
+    <div class="row2">
+      <div class="fg"><label>故事地點</label><input id="sLoc" placeholder="例：家裡廚房" maxlength="20"></div>
+      <div class="fg"><label>故事時間</label><input id="sTime" placeholder="例：週末午後" maxlength="20"></div>
+    </div>
+    <button class="start-btn" onclick="startGame()">開始故事 ✦</button>
+  </div>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="game">
+  <div class="top-bar">
+    <div class="s-info"><span id="iLoc">—</span> · <span id="iTime">—</span></div>
+    <div class="bpm-bar"><span class="hico">💗</span><span id="bpmD">72</span> BPM</div>
+  </div>
+  <div class="scene-box">
+    <div class="scene-ill">
+      <div class="s-emoji" id="sEmoji">🏠</div>
+      <div class="s-stitle" id="sTitle"></div>
+      <div class="s-sdesc" id="sDesc"></div>
+    </div>
+  </div>
+  <div class="aff-area">
+    <div class="aff-label"><span>💞 好感度</span><span id="affPct">0%</span></div>
+    <div class="aff-track"><div class="aff-fill" id="affFill" style="width:0%"></div></div>
+  </div>
+  <div class="dlg-area">
+    <div class="dlg-box">
+      <div class="spk" id="spkName">———</div>
+      <div class="dlg-txt" id="dlgTxt"></div>
+    </div>
+  </div>
+  <div class="ch-area" id="chArea"></div>
+  <div class="nav-bar">
+    <button class="n-btn" onclick="goSetup()">⚙ 重新設定</button>
+    <button class="n-btn pri" id="nxtBtn" onclick="nextStep()" style="display:none">繼續 →</button>
+  </div>
+</div>
+
+<!-- ENDING -->
+<div class="screen" id="ending">
+  <div class="end-card">
+    <div class="end-emo" id="eEmoji">💖</div>
+    <h2 class="end-title" id="eTitle"></h2>
+    <div class="end-score" id="eScore"></div>
+    <p class="end-txt" id="eTxt"></p>
+    <button class="r-btn" onclick="goSetup()">重新開始 ✦</button>
+  </div>
+</div>
+
+<script>
+let cfg={}, aff=0, bpm=72, si=0, waitChoice=false, tyTimer=null;
+
+// ── 地點關鍵字→場景資訊 ──
+function detectScene(loc){
+  const l=loc.toLowerCase();
+  if(/廚房|烘焙|烹飪|料理|餐廳|茶水間/.test(l)) return{emoji:'🍳',key:'kitchen'};
+  if(/咖啡|café|cafe|下午茶|甜點/.test(l)) return{emoji:'☕',key:'cafe'};
+  if(/書房|圖書館|書店|閱讀|讀書/.test(l)) return{emoji:'📚',key:'library'};
+  if(/公園|花園|草地|河邊|湖邊|散步/.test(l)) return{emoji:'🌿',key:'park'};
+  if(/海邊|海灘|沙灘|港口|碼頭/.test(l)) return{emoji:'🌊',key:'beach'};
+  if(/醫院|診所|宿舍|病房/.test(l)) return{emoji:'🏥',key:'hospital'};
+  if(/電影|戲院|影院/.test(l)) return{emoji:'🎬',key:'cinema'};
+  if(/便利商店|超市|超商|夜市|市場/.test(l)) return{emoji:'🏪',key:'store'};
+  if(/屋頂|天台|頂樓|陽台/.test(l)) return{emoji:'🌃',key:'rooftop'};
+  if(/車|捷運|公車|火車|通勤/.test(l)) return{emoji:'🚃',key:'transit'};
+  if(/辦公|公司|職場|工作/.test(l)) return{emoji:'🏢',key:'office'};
+  if(/臥室|房間|床|寢室/.test(l)) return{emoji:'🛏',key:'bedroom'};
+  if(/客廳|沙發|起居室/.test(l)) return{emoji:'🛋',key:'living'};
+  return{emoji:'🏠',key:'home'};
+}
+
+function sceneDesc(key,loc,time,t){
+  const d={
+    kitchen:`${time}的${loc}裡瀰漫著食物的香氣，${t}的圍裙還繫著，側臉映著爐火的光。`,
+    cafe:`${loc}的角落，${time}的陽光把一切都染得微微金黃，${t}端著杯子坐在你對面。`,
+    library:`${loc}裡安靜得只聽得見翻書聲，${t}低著頭，睫毛在書頁上投下淡淡的影。`,
+    park:`${time}的${loc}，風把${t}的髮絲輕輕吹亂，草地上灑著細碎的光點。`,
+    beach:`${loc}的浪聲一陣一陣，${t}脫了鞋走在濕沙上，${time}的光把他的影子拉很長。`,
+    hospital:`${loc}的走廊安靜而漫長，${time}${t}推門進來，手裡端著東西，眼神裡全是擔心。`,
+    cinema:`燈光暗下來的瞬間，${loc}裡只剩下彼此的呼吸，${t}靠在你旁邊的座位上。`,
+    store:`${time}的${loc}幾乎沒什麼人，${t}拿著手上的東西走過來，問你要不要一起。`,
+    rooftop:`${loc}的風很大，城市的燈火在遠處閃爍，${t}靠著欄杆，${time}的夜色把他包裹起來。`,
+    transit:`${loc}搖搖晃晃，${t}就站在你旁邊，${time}的人潮把你們推得更近一點。`,
+    office:`${time}的${loc}漸漸安靜下來，${t}還坐在位子上，抬頭時恰好對上你的視線。`,
+    bedroom:`${time}${t}輕手輕腳地推開門，燈光很昏黃，空氣裡有說不清楚的溫柔。`,
+    living:`${time}的${loc}，電視聲開著但沒人在看，${t}坐在沙發另一端，不知何時側過臉來。`,
+    home:`${time}的${loc}，陽光把地板照得暖洋洋，${t}從房間走出來，正好和你相遇。`,
+  };
+  return d[key]||d.home;
+}
+
+// ── 依地點生成故事段落 ──
+function buildStory(){
+  const p=cfg.player, t=cfg.target, loc=cfg.location, time=cfg.time;
+  const scene=detectScene(loc);
+  const key=scene.key;
+
+  const pools={
+    kitchen:[
+      {type:'narrate',text:`${time}，你走進${loc}，${t}正在揉麵糰，背對著你，肩膀隨著動作輕輕起伏。`},
+      {type:'dialogue',speaker:t,text:`「你來了？剛好，幫我把那邊的麵粉遞過來。」`,sub:`他頭也沒回，但嘴角微微上揚。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「好，在哪裡？」靠過去幫忙找`,reply:`${t}轉過身時，沒料到你站得這麼近，輕輕「啊」了一聲，麵粉罐差點打翻。「你……走路沒有聲音喔。」`,gain:18},
+        {tag:'sweet',label:`「${t}，你做的東西一定很好吃。」`,reply:`他停下動作，回頭看你一眼，「你是來討好我的？」但手邊的麵糰卻揉得更起勁了。`,gain:25},
+        {tag:'bold',label:`悄悄走到他身後說：「需要幫忙嗎？」`,reply:`${t}整個人僵了一秒，慢慢轉身，「你……從什麼時候進來的？」臉上飄著一層薄薄的紅。`,gain:32},
+      ]},
+      {type:'narrate',text:`香氣漸漸充滿整個${loc}，${t}把成品放在你面前，等你試吃。`},
+      {type:'dialogue',speaker:t,text:`「你覺得怎麼樣？老實說。」`,sub:`他靠著流理台，雙臂交叉，眼神卻有點緊張。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「很好吃，比上次還好。」`,reply:`${t}長長地呼了口氣，「那就好。」然後把圍裙解下來，默默靠到你旁邊說，「多吃點。」`,gain:20},
+        {tag:'sweet',label:`「比任何地方吃到的都好吃，因為是${t}做的。」`,reply:`他愣了一下，低頭看著桌上的東西，「……你說話越來越肉麻了。」但又偷偷多拿了一塊給你。`,gain:30},
+        {tag:'bold',label:`「${t}本人比東西更好。」`,reply:`${t}的臉瞬間紅透，用抹布輕輕打你一下，「你有完沒完。」但嘴角根本壓不住。`,gain:40},
+      ]},
+      {type:'narrate',text:`你們就這樣並排坐在${loc}裡，什麼都不用說，光是這樣就覺得很足夠。`},
+      {type:'dialogue',speaker:t,text:`「……以後，有空就多來。」`,sub:`他說得很輕，像是說給空氣聽，卻是認真的。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「嗯，我會的。」`,reply:`${t}點點頭，沒再說話，但那個微笑一直在。`,gain:18},
+        {tag:'sweet',label:`「每天都來可以嗎？」`,reply:`「……隨便你。」他說，但明明是在笑。`,gain:30},
+        {tag:'bold',label:`「我是說，我每天都想見到你。」`,reply:`${t}深吸一口氣，看了你很久，輕輕說，「……我也是。」`,gain:45},
+      ]},
+    ],
+    cafe:[
+      {type:'narrate',text:`你推開${loc}的門，${t}已經在了，坐在角落那桌，面前一杯還冒著熱氣，另一杯是替你點的。`},
+      {type:'dialogue',speaker:t,text:`「來了。我猜你還是要一樣的——拿鐵，少糖。」`,sub:`他說得理所當然，但其實記得你的習慣。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「你還記得？」`,reply:`${t}微微一怔，「記什麼？這很難記嗎？」但眼神避開了你一秒。`,gain:20},
+        {tag:'sweet',label:`「${t}最懂我了。」`,reply:`他把杯子推過來，「少說好聽的，坐下。」臉上卻是忍著的笑。`,gain:28},
+        {tag:'bold',label:`「每次來都被你照顧，有點不捨得走。」`,reply:`${t}手指輕輕敲了一下桌面，「那就待久一點啊。」說完似乎才發現自己說了什麼，低頭喝了一口咖啡。`,gain:38},
+      ]},
+      {type:'narrate',text:`窗外有人走過，陽光一格格移動，${loc}裡的音樂很輕，你們說著說著忘了時間。`},
+      {type:'dialogue',speaker:t,text:`「你有沒有覺得……有些地方，一個人來和兩個人來，感覺完全不同？」`,sub:`他望著窗外，聲音比平時慢了一點。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「有，兩個人比較不孤單。」`,reply:`「……嗯。」${t}應了一聲，轉過來看你，「今天謝謝你陪我來。」`,gain:22},
+        {tag:'sweet',label:`「和${t}一起，哪裡都不一樣。」`,reply:`他停頓了一下，「……你說話總是這樣。」但沒有否認，反而往你這邊靠了一點。`,gain:33},
+        {tag:'bold',label:`「因為我只想和你一起來這裡。」`,reply:`${t}長長地看著你，最後輕輕笑了，「……那下次也來。」`,gain:45},
+      ]},
+      {type:'dialogue',speaker:t,text:`「杯子涼了。」`,sub:`他起身幫你換了一杯熱的，放在你手邊，動作很自然，卻讓你心跳了一拍。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「謝謝${t}。」`,reply:`「小事。」他說，坐回去，但把椅子移近了一點點。`,gain:18},
+        {tag:'sweet',label:`「你總是在我沒注意的時候照顧我。」`,reply:`${t}沉默片刻，「有嗎……」聲音變得很輕，「大概是習慣了。」`,gain:35},
+        {tag:'bold',label:`輕輕把手覆在他遞過來的手上`,reply:`他沒縮手，呼吸慢了一拍，然後非常輕聲說，「……你在幹嘛。」但手沒動。`,gain:50},
+      ]},
+    ],
+    library:[
+      {type:'narrate',text:`${loc}裡安靜得像另一個世界，你找到${t}的時候，他正側坐在書架旁邊，書翻到一半，看起來已經很入神了。`},
+      {type:'dialogue',speaker:t,text:`「你也來這裡。」`,sub:`他只是抬起眼，嘴邊帶著一點點的意外，又很快恢復平靜。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「嗯，${time}沒什麼事，就過來了。」`,reply:`${t}點點頭，往旁邊移了移，「坐，別站著。」書架旁的位子剛好只夠兩個人。`,gain:20},
+        {tag:'sweet',label:`「聽說你喜歡來這裡，就跟著來了。」`,reply:`他抬頭，「誰說的？」但把手邊的書輕輕合上，把注意力給了你。`,gain:28},
+        {tag:'bold',label:`「想見你，就來找你了。」`,reply:`${t}一頓，低下頭若無其事地翻書，耳根卻悄悄紅了，「……我在讀書。」`,gain:38},
+      ]},
+      {type:'narrate',text:`你們並肩坐著，各自讀著各自的書，偶爾一個眼神交錯，又默默低頭，${loc}把這段時光變得特別安靜。`},
+      {type:'dialogue',speaker:t,text:`「這段……你看過嗎？」`,sub:`他把書輕輕向你傾過來，指著其中一行字，距離近到可以聞到他身上淡淡的氣息。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`低頭去看，認真閱讀那段文字`,reply:`兩個人就這樣靠在一起讀著同一頁，${t}沒有移開，你也沒有。`,gain:22},
+        {tag:'sweet',label:`「不管寫什麼，你推薦的我都想看。」`,reply:`${t}側過臉來看你，「……你不太像在說書。」但還是沒把書收走。`,gain:33},
+        {tag:'bold',label:`「比起書，我更想看你的表情。」`,reply:`他閉上眼睛，緩緩呼出一口氣，「……${p}。」`,gain:46},
+      ]},
+      {type:'dialogue',speaker:t,text:`「要走了嗎？」`,sub:`${loc}快打烊，燈光變暗了一格，他還坐著沒動，等你回答。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「再坐一會兒。」`,reply:`${t}點點頭，把書放回架上，卻在你旁邊繼續坐著，「好。」`,gain:20},
+        {tag:'sweet',label:`「想跟你一起走。」`,reply:`他起身，把書放好，伸手整理了一下衣角，「那走吧。」嘴角微微往上。`,gain:32},
+        {tag:'bold',label:`「捨不得離開，因為離開了就看不到你了。」`,reply:`${t}停在原地，沉默了好幾秒，低聲說，「……那多待一會兒也沒關係。」`,gain:48},
+      ]},
+    ],
+    park:[
+      {type:'narrate',text:`${time}的${loc}，${t}走在你旁邊，鞋子踩著草地，風把他的衣服輕輕吹起來。`},
+      {type:'dialogue',speaker:t,text:`「你說要來散步，我沒想到你真的找我。」`,sub:`他說得很平，但是來了。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「難得${time}有空，就出來走走。」`,reply:`${t}低頭看著前方，「……嗯，我也是。」步伐自然地跟上你的節奏。`,gain:18},
+        {tag:'sweet',label:`「說要找你，就一定找你。」`,reply:`他偏過頭看了你一眼，「……說話算話嘛你。」語氣裡有掩不住的輕快。`,gain:28},
+        {tag:'bold',label:`「找你，不需要理由的。」`,reply:`${t}沒說話，走慢了一步，然後又追上來，「……你越來越會說話了。」`,gain:38},
+      ]},
+      {type:'narrate',text:`你們繞著${loc}走了一圈，${t}忽然站定，仰頭看著樹縫裡漏下來的光。`},
+      {type:'dialogue',speaker:t,text:`「你有沒有覺得，有些地方……會讓你不想走？」`,sub:`他沒看你，但聲音裡有什麼說不清楚的東西。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「有，就像現在這樣。」`,reply:`${t}轉過來，對上你的眼，過了幾秒才說，「……我也是。」`,gain:25},
+        {tag:'sweet',label:`「是地方，也是因為旁邊的人。」`,reply:`他低下頭，輕咳一聲，「……你故意的。」但沒有走開。`,gain:35},
+        {tag:'bold',label:`「因為你在，我哪裡都不想走。」`,reply:`${t}靜靜地看著你，風把他的頭髮吹亂，他沒去撥，只是輕聲說，「……那就別走。」`,gain:50},
+      ]},
+      {type:'dialogue',speaker:t,text:`「走這麼遠了，腳不累嗎？」`,sub:`他忽然彎腰，把掉在路上的石子踢開，像是一直在幫你留意腳下的路。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「不累，和你走不覺得。」`,reply:`${t}沒說話，走近了一步，兩個人肩膀幾乎碰到了。`,gain:22},
+        {tag:'sweet',label:`「只要你陪，走多遠都好。」`,reply:`他把眼睛稍微瞇起來，「……肉麻死了。」但步伐更靠近你一點了。`,gain:33},
+        {tag:'bold',label:`裝作快撐不住，輕靠上他的肩`,reply:`${t}身子微微一頓，沒推開，沉默兩秒，然後慢慢說，「……走慢一點就好了。」`,gain:48},
+      ]},
+    ],
+    beach:[
+      {type:'narrate',text:`${time}的${loc}，遊客不多，${t}脫了鞋提在手裡，走在你旁邊，海風把一切聲音都吹得遙遠。`},
+      {type:'dialogue',speaker:t,text:`「你不常來海邊吧？」`,sub:`他往遠處望著，浪打上來把他的腳踝淹了一下，他沒避開。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「以前不常，現在想多來。」`,reply:`${t}側臉看你，「為什麼現在想來了？」語氣輕描淡寫，但等著你回答。`,gain:22},
+        {tag:'sweet',label:`「有你一起，哪裡都想去。」`,reply:`他低下頭笑了一下，「……你說話真的很直接。」但腳步沒有離你更遠。`,gain:33},
+        {tag:'bold',label:`「因為想找個地方，只有我們兩個。」`,reply:`${t}的腳步停了一下，海浪正好打過來，他看著你，「……說真的？」`,gain:45},
+      ]},
+      {type:'narrate',text:`你們走到一塊石頭旁邊坐下來，${t}把腳踩進沙裡，仰著頭，眼睛閉起來讓風吹。`},
+      {type:'dialogue',speaker:t,text:`「你知道嗎，以前我喜歡一個人來這裡。」`,sub:`他說得很平靜，「但現在……覺得這樣也不錯。」`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「能陪你，我很高興。」`,reply:`${t}睜開眼，側頭看你，「……你這個人，總是說得剛剛好。」`,gain:25},
+        {tag:'sweet',label:`「以後都讓我陪你來。」`,reply:`他沒說話，把視線放回海面，過了一會，「……好啊。」輕輕的，卻很認真。`,gain:38},
+        {tag:'bold',label:`輕輕握住他放在沙上的手`,reply:`${t}低頭看了一眼，沒動，海浪一浪一浪，他的手指緩緩扣上來，「……傻瓜。」`,gain:55},
+      ]},
+      {type:'dialogue',speaker:t,text:`「要回去了嗎？」`,sub:`太陽開始西斜，他站起來，拍拍身上的沙，卻沒先走。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「再看一會兒。」`,reply:`${t}重新坐下來，「好。」就這樣，兩個人繼續看著海，誰也不急。`,gain:20},
+        {tag:'sweet',label:`「捨不得這裡，也捨不得你。」`,reply:`他深吸一口氣，「……說這種話。」但沒動，繼續陪你坐著。`,gain:35},
+        {tag:'bold',label:`「帶我去你以前一個人坐的地方。」`,reply:`${t}愣了一下，然後站起來伸出手，「走吧，那邊景色更好。」`,gain:50},
+      ]},
+    ],
+    rooftop:[
+      {type:'narrate',text:`${time}的${loc}，城市在下面亮著，${t}靠著欄杆，風把他的頭髮吹得有點亂，他也不在意。`},
+      {type:'dialogue',speaker:t,text:`「你也跑來這裡了。」`,sub:`他沒轉身，但語氣裡有點意外，又有點高興。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「聽說你常來這裡，就想看看。」`,reply:`${t}偏過頭，「誰說的。」轉回去看夜景，但在你旁邊讓出了一點位置。`,gain:20},
+        {tag:'sweet',label:`「找你找到這裡來了。」`,reply:`他輕笑了一聲，「費那麼大勁。」，但往你旁邊靠近了一步。`,gain:30},
+        {tag:'bold',label:`「一直想找個地方和你說幾句話。」`,reply:`${t}轉過身，把後背靠在欄杆上，直接看著你，「說吧。」`,gain:42},
+      ]},
+      {type:'narrate',text:`燈火在下面流動，${loc}的風很大，${t}把外套拉了拉，偶爾側過臉來看你。`},
+      {type:'dialogue',speaker:t,text:`「你說，如果可以停在某一刻……你會選哪一刻？」`,sub:`他說這句話時，眼神是認真的。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「很難說，每一刻都有點捨不得。」`,reply:`${t}點頭，「我懂。」沉默片刻，「……你呢，真的答案？」`,gain:22},
+        {tag:'sweet',label:`「和你在一起的時候，很多刻我都想留住。」`,reply:`他閉上眼睛，風把他的頭髮吹過去，良久才說，「……我也是。」`,gain:38},
+        {tag:'bold',label:`「就是現在這一刻。」`,reply:`${t}睜開眼，直直看著你，夜風在你們之間穿過，他輕聲說，「……是嗎。」`,gain:52},
+      ]},
+      {type:'dialogue',speaker:t,text:`「冷嗎？」`,sub:`他忽然問，眼神落在你身上，比看夜景還認真。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「有一點，但沒關係。」`,reply:`${t}解下外套，不由分說搭在你身上，「你說沒關係的事，通常都有關係。」`,gain:25},
+        {tag:'sweet',label:`「你靠近一點就不冷了。」`,reply:`他停了一下，慢慢往你這邊移了半步，「……你越來越厲害了。」`,gain:40},
+        {tag:'bold',label:`拉住他的袖子，不讓他離太遠`,reply:`${t}低頭看著你握著他袖子的手，沉默好幾秒，然後輕輕說，「……好，我在。」`,gain:55},
+      ]},
+    ],
+    transit:[
+      {type:'narrate',text:`${time}的${loc}比想像中擁擠，你和${t}擠在同一節車廂，搖晃讓你們不得不靠近。`},
+      {type:'dialogue',speaker:t,text:`「怎麼這個時間出來？」`,sub:`他一手扶著桿子，另一手自然地擋在你和人群之間。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「剛好要去某個地方，碰到你了。」`,reply:`「哦。」${t}應了一聲，車廂搖晃，他的手臂更緊了一點，把你護住。`,gain:20},
+        {tag:'sweet',label:`「其實是想找機會和你一起搭車。」`,reply:`他一頓，偏過臉，「……你說真的？」耳朵悄悄紅了。`,gain:33},
+        {tag:'bold',label:`「想和你一起，就跟上來了。」`,reply:`${t}長長地看著你，車窗外的風景飛過去，他輕聲說，「……下次說一聲。」`,gain:45},
+      ]},
+      {type:'narrate',text:`車廂繼續搖，${t}沒有移開，反而自然而然地站到你旁邊，替你擋著人群。`},
+      {type:'dialogue',speaker:t,text:`「你要去哪裡？」`,sub:`他問，比一般問路的語氣更輕，更在意答案。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「還沒決定，走到哪算哪。」`,reply:`${t}沉默一下，「那……我可以陪你走一段。」`,gain:25},
+        {tag:'sweet',label:`「你去哪裡，我就去哪裡。」`,reply:`他呼出一口氣，「……你說這種話的樣子，讓我不知道怎麼回應。」但沒說不行。`,gain:38},
+        {tag:'bold',label:`「想待在你身邊，所以哪裡都行。」`,reply:`車廂搖晃，${t}輕輕扶住你的肩膀，「……站好。」聲音很輕，很近。`,gain:50},
+      ]},
+      {type:'dialogue',speaker:t,text:`「快到站了。」`,sub:`他說，卻沒有移動腳步，好像有點不想下車。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「多坐幾站也沒關係。」`,reply:`${t}低頭看你，「……好。」就這樣，車繼續開，誰也沒說下車。`,gain:22},
+        {tag:'sweet',label:`「陪我多繞一圈。」`,reply:`他輕笑，「那要費不少時間。」「沒關係。」他點點頭，「……好，陪你。」`,gain:36},
+        {tag:'bold',label:`輕輕拉住他的袖角，「別下去。」`,reply:`${t}低頭看著你的手，車門開了又關，他說，「……好，再一站。」`,gain:52},
+      ]},
+    ],
+    office:[
+      {type:'narrate',text:`${time}的${loc}漸漸安靜，多數人已經離開，${t}還坐在位子上，螢幕光打在他臉上，讓他看起來格外專注。`},
+      {type:'dialogue',speaker:t,text:`「你怎麼還沒走？」`,sub:`他抬頭，輕輕皺了一下眉，不是不悅，是擔心。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「等你一起走。」`,reply:`${t}停下手邊的動作，看了你好一會兒，「……等我幹嘛。」但開始收拾桌上的東西。`,gain:25},
+        {tag:'sweet',label:`「看你還在，就不想先走。」`,reply:`他低下頭，「……你這樣說，我會有壓力的。」但鍵盤已經合上了。`,gain:33},
+        {tag:'bold',label:`「因為今天想和你說幾句話。」`,reply:`${t}轉過椅子正對著你，「說吧。」眼神很直，很認真。`,gain:45},
+      ]},
+      {type:'narrate',text:`空蕩蕩的${loc}只剩你們，冷氣聲均勻地響著，${t}把椅子推開，站起來走到你旁邊。`},
+      {type:'dialogue',speaker:t,text:`「最近……你還好嗎？」`,sub:`他問得很輕，不像公事，像朋友，也像更多一點什麼。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「還好，看到你就更好了。」`,reply:`${t}停頓了一下，「……你說這種話我不知道怎麼接。」但臉上是忍著的笑意。`,gain:28},
+        {tag:'sweet',label:`「有你在的地方，我都覺得很好。」`,reply:`他深吸一口氣，轉頭看向別處，「……你不要說這種話。」卻沒走開。`,gain:38},
+        {tag:'bold',label:`「其實每天都在等你看我一眼。」`,reply:`${t}轉回來，直直看進你的眼睛，半晌說，「……我看很多次了。你都沒發現嗎。」`,gain:55},
+      ]},
+      {type:'dialogue',speaker:t,text:`「走吧，我送你。」`,sub:`他拿起包，自然地在你前面開門，燈光把他的側臉勾得很清晰。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「麻煩你了。」`,reply:`「不麻煩。」他說，步伐和你保持著同樣的節奏。`,gain:18},
+        {tag:'sweet',label:`「送我到哪裡都好。」`,reply:`${t}輕輕笑了，「……說這種話。」但走得更慢了。`,gain:32},
+        {tag:'bold',label:`「可以送我回家嗎？」`,reply:`他停下腳步，沉默三秒，「好。」然後繼續走，聲音很輕，但很確定。`,gain:48},
+      ]},
+    ],
+    home:[
+      {type:'narrate',text:`${time}，你和${t}在${loc}，外面的聲音都很遠，這裡只有你們兩個人。`},
+      {type:'dialogue',speaker:t,text:`「你今天怎麼了？看起來有心事。」`,sub:`他搬了個位置坐到你旁邊，眼神落在你臉上，認真地看。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「沒事，只是有點發呆。」`,reply:`${t}靠著椅背，「發什麼呆？」眼神沒有移開。`,gain:18},
+        {tag:'sweet',label:`「看到你就什麼都忘了。」`,reply:`他愣了一下，「……你說話越來越奇怪了。」但沒有換位子坐。`,gain:28},
+        {tag:'bold',label:`「在想你。」`,reply:`${t}整個人靜了幾秒，緩緩說，「……在想我什麼？」`,gain:40},
+      ]},
+      {type:'narrate',text:`${loc}的燈光很暖，${t}不知不覺靠得更近，你們之間剩下很小的距離。`},
+      {type:'dialogue',speaker:t,text:`「你有沒有覺得……我們在一起，好像很自然？」`,sub:`他說完，自己也愣了一下，像是不太確定自己說了什麼。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「有，我一直都這樣覺得。」`,reply:`${t}點點頭，「……我也是。」聲音很輕，卻很篤定。`,gain:25},
+        {tag:'sweet',label:`「因為我一直希望這樣。」`,reply:`他側過臉，長長地看著你，「……原來你也這樣想。」`,gain:38},
+        {tag:'bold',label:`「因為我很喜歡${t}。」`,reply:`${t}沉默了好一會，空氣像是凝住了，然後他輕輕說，「……我也喜歡你。」`,gain:55},
+      ]},
+      {type:'dialogue',speaker:t,text:`「天黑了，你要留下來嗎？」`,sub:`他說得很平靜，但眼神裡有期待。`},
+      {type:'choice',choices:[
+        {tag:'gentle',label:`「可以的話，想多陪你一會兒。」`,reply:`${t}點頭，「好，我去泡茶。」起身時，手輕輕碰了你的肩一下。`,gain:20},
+        {tag:'sweet',label:`「有你在，我捨不得走。」`,reply:`他低下頭，唇角慢慢浮起一個笑，「……那就別走了。」`,gain:35},
+        {tag:'bold',label:`輕握住他的手腕，「我想待在你身邊。」`,reply:`${t}低頭看著你握他的手，好久好久，最後輕輕翻過手，十指交扣，「……好。」`,gain:55},
+      ]},
+    ],
+  };
+
+  // fallback→home
+  return (pools[key]||pools.home);
+}
+
+// ── 場景圖示更新 ──
+function renderScene(){
+  const sc=detectScene(cfg.location);
+  document.getElementById('sEmoji').textContent=sc.emoji;
+  document.getElementById('sTitle').textContent=`${cfg.time}・${cfg.location}`;
+  document.getElementById('sDesc').textContent=sceneDesc(sc.key,cfg.location,cfg.time,cfg.target);
+}
+
+// ── 打字機 ──
+function typeText(el,text,cb){
+  if(tyTimer)clearInterval(tyTimer);
+  el.innerHTML='';let i=0;
+  const cur=document.createElement('span');cur.className='cur';el.appendChild(cur);
+  tyTimer=setInterval(()=>{
+    if(i<text.length){cur.insertAdjacentText('beforebegin',text[i]);i++;}
+    else{clearInterval(tyTimer);cur.remove();if(cb)cb();}
+  },36);
+}
+
+// ── 愛心爆炸 ──
+function spawnHeart(x,y){
+  const el=document.createElement('div');el.className='hburst';
+  el.textContent=['💗','💖','💕','💞','❤️'][Math.floor(Math.random()*5)];
+  el.style.left=(x-12)+'px';el.style.top=(y-12)+'px';
+  document.body.appendChild(el);setTimeout(()=>el.remove(),1000);
+}
+
+// ── BPM ──
+function setBPM(v){
+  bpm=Math.min(145,Math.max(60,v));
+  document.getElementById('bpmD').textContent=bpm;
+  document.querySelector('.hico').style.animationDuration=(60/bpm).toFixed(2)+'s';
+}
+function gainAff(n){
+  aff=Math.min(100,aff+n);
+  document.getElementById('affFill').style.width=aff+'%';
+  document.getElementById('affPct').textContent=aff+'%';
+  setBPM(62+Math.round(aff*.82));
+}
+
+// ── 步驟渲染 ──
+let story=[];
+function renderStep(){
+  const step=story[si];
+  if(!step){showEnding();return;}
+  const nb=document.getElementById('nxtBtn'),ca=document.getElementById('chArea');
+  ca.innerHTML='';nb.style.display='none';waitChoice=false;
+
+  if(step.type==='narrate'){
+    document.getElementById('spkName').textContent='旁　白';
+    typeText(document.getElementById('dlgTxt'),step.text,()=>{nb.style.display='block';});
+  } else if(step.type==='dialogue'){
+    document.getElementById('spkName').textContent=step.speaker==='旁白'?'旁　白':step.speaker;
+    typeText(document.getElementById('dlgTxt'),step.text+(step.sub?'\n'+step.sub:''),()=>{nb.style.display='block';});
+  } else if(step.type==='choice'){
+    document.getElementById('spkName').textContent='你的選擇';
+    document.getElementById('dlgTxt').innerHTML='<em style="color:var(--muted);font-size:.84rem">你會怎麼做？</em>';
+    waitChoice=true;
+    step.choices.forEach(c=>{
+      const b=document.createElement('button');b.className='ch-btn';
+      b.innerHTML=`<span class="ctag t-${c.tag}">${{sweet:'甜蜜',bold:'大膽',gentle:'溫柔'}[c.tag]}</span>${c.label}`;
+      b.onclick=e=>{
+        spawnHeart(e.clientX,e.clientY);gainAff(c.gain);
+        ca.innerHTML='';
+        document.getElementById('spkName').textContent=cfg.target;
+        typeText(document.getElementById('dlgTxt'),c.reply,()=>{si++;setTimeout(renderStep,750);});
+      };
+      ca.appendChild(b);
+    });
+  }
+}
+function tagLabel(t){return{sweet:'甜蜜',bold:'大膽',gentle:'溫柔'}[t]||'';}
+function nextStep(){if(waitChoice)return;si++;renderStep();}
+
+// ── 開始遊戲 ──
+function startGame(){
+  cfg={
+    player:document.getElementById('pName').value.trim()||'你',
+    target:document.getElementById('tName').value.trim()||'他',
+    role:document.getElementById('tRole').value.trim()||'嫂子',
+    location:document.getElementById('sLoc').value.trim()||'家裡',
+    time:document.getElementById('sTime').value.trim()||'午後',
+  };
+  aff=0;si=0;gainAff(0);
+  document.getElementById('iLoc').textContent=cfg.location;
+  document.getElementById('iTime').textContent=cfg.time;
+  renderScene();
+  story=buildStory();
+  showScreen('game');
+  setTimeout(renderStep,400);
+}
+
+// ── 結局 ──
+function showEnding(){
+  const t=cfg.target,loc=cfg.location,time=cfg.time;
+  let emo,title,txt;
+  if(aff>=85){
+    emo='💖';title='心意相通';
+    txt=`${time}的${loc}，那道說不清楚的距離，在今天悄悄消失了。\n${t}說的那句話，你會記很久很久。\n也許有些感情，根本不需要多說什麼，\n只要繼續靠近，就夠了。`;
+  } else if(aff>=60){
+    emo='🌸';title='悸動萌芽';
+    txt=`${t}心裡，已經有一個地方是留給你的。\n${loc}的${time}，你們都感覺到了，\n只是還差那麼一步——\n而你們都知道，那一步不會太遠。`;
+  } else if(aff>=35){
+    emo='☁️';title='微微心動';
+    txt=`有些情感，像${time}的光，\n溫暖，但還沒到灼熱。\n${t}記得今天，你也記得。\n也許下一次，可以更勇敢一點。`;
+  } else {
+    emo='🍃';title='平靜的一天';
+    txt=`${loc}的${time}，好像和平常沒什麼不同。\n但你知道，心裡某個地方，\n已經悄悄不一樣了。`;
+  }
+  document.getElementById('eEmoji').textContent=emo;
+  document.getElementById('eTitle').textContent=title;
+  document.getElementById('eScore').textContent=`好感度 ${aff} / 100`;
+  document.getElementById('eTxt').textContent=txt;
+  showScreen('ending');
+}
+
+// ── 畫面切換 ──
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function goSetup(){showScreen('setup');}
+
+// ── 花瓣 ──
+(()=>{
+  const c=document.getElementById('petalsC');
+  ['🌸','🌷','💮','✿','🌺'].forEach((s,i)=>{
+    for(let j=0;j<3;j++){
+      const p=document.createElement('div');p.className='petal';p.textContent=s;
+      p.style.left=Math.random()*100+'%';p.style.fontSize=(13+Math.random()*9)+'px';
+      const d=9+Math.random()*11;p.style.animationDuration=d+'s';p.style.animationDelay=-(Math.random()*d)+'s';
+      c.appendChild(p);
+    }
+  });
+})();
+</script>
+</body>
+</html>
